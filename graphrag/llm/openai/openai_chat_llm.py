@@ -64,7 +64,8 @@ class OpenAIChatLLM(BaseLLM[CompletionInput, CompletionOutput]):
     ) -> LLMOutput[CompletionOutput]:
         """Generate JSON output."""
         name = kwargs.get("name") or "unknown"
-        is_response_valid = kwargs.get("is_response_valid") or (lambda _x: True)
+        # is_response_valid = kwargs.get("is_response_valid") or (lambda _x: True)
+        is_response_valid = lambda _x: True
 
         async def generate(
             attempt: int | None = None,
@@ -88,6 +89,7 @@ class OpenAIChatLLM(BaseLLM[CompletionInput, CompletionOutput]):
         if is_valid(result.json):
             return result
         raise RuntimeError(FAILED_TO_CREATE_JSON_ERROR)
+        return result
 
     async def _native_json(
         self, input: CompletionInput, **kwargs: Unpack[LLMInput]

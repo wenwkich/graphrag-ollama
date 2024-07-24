@@ -27,6 +27,8 @@ from graphrag.query.llm.oai.typing import (
 from graphrag.query.llm.text_utils import chunk_text
 from graphrag.query.progress import StatusReporter
 
+import ollama
+import json
 
 class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
     """Wrapper for OpenAI Embedding models."""
@@ -130,16 +132,22 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
             )
             for attempt in retryer:
                 with attempt:
-                    embedding = (
-                        self.sync_client.embeddings.create(  # type: ignore
-                            input=text,
-                            model=self.model,
-                            **kwargs,  # type: ignore
-                        )
-                        .data[0]
-                        .embedding
-                        or []
-                    )
+                    # embedding = (
+                    #     self.sync_client.embeddings.create(  # type: ignore
+                    #         input=text,
+                    #         model=self.model,
+                    #         **kwargs,  # type: ignore
+                    #     )
+                    #     .data[0]
+                    #     .embedding
+                    #     or []
+                    # )
+
+                    if isinstance(text, tuple):
+                        text = json.dumps(text)
+                    embedding = ollama.embeddings(model="nomic-embed-text", prompt=text)
+                    embedding = list(embedding["embedding"])
+                    
                     return (embedding, len(text))
         except RetryError as e:
             self._reporter.error(
@@ -163,13 +171,19 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
             )
             async for attempt in retryer:
                 with attempt:
-                    embedding = (
-                        await self.async_client.embeddings.create(  # type: ignore
-                            input=text,
-                            model=self.model,
-                            **kwargs,  # type: ignore
-                        )
-                    ).data[0].embedding or []
+                    # embedding = (
+                    #     await self.async_client.embeddings.create(  # type: ignore
+                    #         input=text,
+                    #         model=self.model,
+                    #         **kwargs,  # type: ignore
+                    #     )
+                    # ).data[0].embedding or []
+
+                    if isinstance(text, tuple):
+                        text = json.dumps(text)
+                    embedding = ollama.embeddings(model=self.model, prompt=text)
+                    embedding = list(embedding["embedding"])
+
                     return (embedding, len(text))
         except RetryError as e:
             self._reporter.error(
